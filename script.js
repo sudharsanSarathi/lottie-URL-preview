@@ -181,23 +181,25 @@ async function loadAnimationFromUrl(url) {
 
     try {
         let jsonData;
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
-        try {
-            // First try direct fetch (for URLs that support CORS)
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Direct fetch failed');
+        if (isLocalhost) {
+            // In localhost, use our proxy server
+            const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             jsonData = await response.json();
-        } catch (directError) {
-            // If direct fetch fails, try using proxy
-            const proxyUrl = `${window.location.protocol}//${window.location.hostname}:3000/proxy?url=${encodeURIComponent(url)}`;
-            const proxyResponse = await fetch(proxyUrl);
-            if (!proxyResponse.ok) throw new Error('Proxy fetch failed');
-            jsonData = await proxyResponse.json();
+        } else {
+            // In production (GitHub Pages), use a public CORS proxy
+            const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+            const response = await fetch(corsProxyUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            jsonData = await response.json();
         }
-        
+
         loadAnimationFromData(jsonData);
     } catch (error) {
-        showError('Failed to load animation. Please check the URL and try again.');
+        showError('Failed to load animation. Please check the URL and try again. Make sure the URL is publicly accessible.');
         console.error('Error loading animation from URL:', error);
         hideLoading(loadButton);
     }

@@ -481,7 +481,7 @@ async function handleFileUpload(file) {
     }
 }
 
-// Replace the loadAnimationFromUrl function in the script section with:
+// Function to load animation from URL (GitHub Pages version with CORS handling)
 async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
@@ -502,34 +502,41 @@ async function loadAnimationFromUrl(url) {
             </div>
         `;
 
-        // Create the animation directly with the URL
-        lottieAnimation = lottie.loadAnimation({
-            container: playerContainer,
-            renderer: 'svg',
-            loop: true,
-            autoplay: true,
-            path: cleanUrl
-        });
+        // For GitHub Pages deployment, we need to fetch the JSON data first due to CORS
+        let jsonData;
+        
+        try {
+            // Try direct fetch first (works for CORS-enabled URLs)
+            const response = await fetch(cleanUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            jsonData = await response.json();
+        } catch (directFetchError) {
+            console.log('Direct fetch failed, trying CORS proxy...', directFetchError);
+            
+            // Fallback to CORS proxy
+            try {
+                const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
+                const proxyResponse = await fetch(corsProxyUrl);
+                if (!proxyResponse.ok) throw new Error(`Proxy HTTP error! status: ${proxyResponse.status}`);
+                jsonData = await proxyResponse.json();
+            } catch (proxyError) {
+                console.log('CORS proxy failed, trying alternative proxy...', proxyError);
+                
+                // Try alternative CORS proxy
+                const altProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanUrl)}`;
+                const altResponse = await fetch(altProxyUrl);
+                if (!altResponse.ok) throw new Error(`Alternative proxy HTTP error! status: ${altResponse.status}`);
+                const altData = await altResponse.json();
+                jsonData = JSON.parse(altData.contents);
+            }
+        }
 
-        // Enable controls once animation is loaded
-        lottieAnimation.addEventListener('DOMLoaded', () => {
-            playPauseButton.disabled = false;
-            playPauseButton.textContent = 'Pause';
-            clearError();
-            hideLoading(loadButton);
-            updateSeekbar();
-        });
-
-        // Handle loading error
-        lottieAnimation.addEventListener('error', () => {
-            showError('Failed to load animation. Please check the URL and try again.');
-            playPauseButton.disabled = true;
-            hideLoading(loadButton);
-        });
+        // Load the animation with the fetched data
+        loadAnimationFromData(jsonData);
 
     } catch (error) {
-        showError('Failed to load animation. Please check the URL and try again.');
-        console.error('Error loading animation:', error);
+        showError('Failed to load animation. Please check the URL and ensure it\'s publicly accessible. CORS restrictions may prevent loading from some domains.');
+        console.error('Error loading animation from URL:', error);
         hideLoading(loadButton);
     }
 }

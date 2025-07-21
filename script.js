@@ -176,53 +176,28 @@ async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
     try {
-        // Try direct fetch first
-        try {
-            const response = await fetch(url);
-            if (response.ok) {
-                const jsonData = await response.json();
-                loadAnimationFromData(jsonData);
-                return;
-            }
-        } catch (directError) {
-            console.log('Direct fetch failed, trying CORS proxy...');
+        // Remove any @ symbol from the start of the URL
+        const cleanUrl = url.startsWith('@') ? url.substring(1) : url;
+        
+        // Use jsonp.afeld.me proxy - one of the most reliable CORS proxies
+        const proxyUrl = `https://jsonp.afeld.me/?url=${encodeURIComponent(cleanUrl)}`;
+        
+        const response = await fetch(proxyUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch: ${response.status}`);
         }
 
-        // If direct fetch fails, try CORS proxy
-        const corsProxies = [
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-            `https://cors-anywhere.herokuapp.com/${url}`,
-            `https://corsproxy.io/?${encodeURIComponent(url)}`
-        ];
-
-        for (const proxyUrl of corsProxies) {
-            try {
-                const response = await fetch(proxyUrl);
-                if (response.ok) {
-                    const jsonData = await response.json();
-                    loadAnimationFromData(jsonData);
-                    return;
-                }
-            } catch (proxyError) {
-                console.log(`Proxy failed: ${proxyUrl}`);
-            }
+        const jsonData = await response.json();
+        
+        // Basic validation of Lottie format
+        if (!jsonData || !jsonData.v || !jsonData.layers) {
+            throw new Error('Invalid Lottie animation format');
         }
 
-        // If all proxies fail and we're on localhost, try the local proxy
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            const localProxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-            const response = await fetch(localProxyUrl);
-            if (response.ok) {
-                const jsonData = await response.json();
-                loadAnimationFromData(jsonData);
-                return;
-            }
-        }
-
-        throw new Error('All fetch attempts failed');
+        loadAnimationFromData(jsonData);
     } catch (error) {
-        showError('Failed to load animation. Please check the URL and try again.');
-        console.error('Error loading animation from URL:', error);
+        console.error('Error loading animation:', error);
+        showError('Failed to load animation. Please make sure the URL points to a valid Lottie JSON file.');
         hideLoading(loadButton);
     }
 }

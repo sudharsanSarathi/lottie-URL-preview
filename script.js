@@ -83,12 +83,40 @@ function clearError() {
 // Function to calculate animation duration from Lottie JSON
 function calculateAnimationDuration(jsonData) {
     try {
-        const inPoint = jsonData.ip || 0;  // in point (start frame)
-        const outPoint = jsonData.op || 0; // out point (end frame)
-        const frameRate = jsonData.fr || 30; // frame rate (default 30fps)
-        
+        // Check if jsonData is valid
+        if (!jsonData || typeof jsonData !== 'object') {
+            console.warn('Invalid Lottie JSON data');
+            return 0;
+        }
+
+        // Get frame rate (fr), default to 30fps if missing or invalid
+        const frameRate = typeof jsonData.fr === 'number' && jsonData.fr > 0 ? jsonData.fr : 30;
+
+        // Get in point (ip), default to 0 if missing or invalid
+        const inPoint = typeof jsonData.ip === 'number' ? jsonData.ip : 0;
+
+        // Get out point (op), try to get from totalFrames if op is missing
+        let outPoint;
+        if (typeof jsonData.op === 'number') {
+            outPoint = jsonData.op;
+        } else if (typeof jsonData.totalFrames === 'number') {
+            outPoint = jsonData.totalFrames;
+        } else {
+            // If both op and totalFrames are missing, try to calculate from animation data
+            outPoint = jsonData.animation_id ? jsonData.animation_id.frames : inPoint;
+        }
+
+        // Validate points
+        if (outPoint <= inPoint) {
+            console.warn('Invalid animation points: out point <= in point');
+            return 0;
+        }
+
+        // Calculate duration using the formula: duration = (op - ip) / fr
         const duration = (outPoint - inPoint) / frameRate;
-        return Math.max(0, duration); // Ensure non-negative duration
+        
+        // Ensure non-negative duration and round to 3 decimal places for precision
+        return Math.max(0, Math.round(duration * 1000) / 1000);
     } catch (error) {
         console.error('Error calculating duration:', error);
         return 0;

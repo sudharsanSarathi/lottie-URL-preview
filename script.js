@@ -251,33 +251,62 @@ async function loadAnimationFromUrl(url) {
                 }
             }
         } else {
-            // Deployed environment - use CORS handling approach
-            let jsonData;
-            
-            try {
-                // Try direct fetch first (works for CORS-enabled URLs)
-                const response = await fetch(cleanUrl);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                jsonData = await response.json();
-            } catch (directFetchError) {
-                console.log('Direct fetch failed, trying CORS proxy...', directFetchError);
-                
-                // Fallback to CORS proxy
+            // Deployed environment - use enhanced CORS handling approach
+            const corsProxies = [
+                // Direct fetch (works for CORS-enabled URLs)
+                { name: 'Direct', url: cleanUrl },
+                // Multiple CORS proxy services for better reliability
+                { name: 'ThingProxy', url: `https://thingproxy.freeboard.io/fetch/${cleanUrl}` },
+                { name: 'CorsProxy.io', url: `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}` },
+                { name: 'AllOrigins', url: `https://api.allorigins.win/get?url=${encodeURIComponent(cleanUrl)}`, parseContents: true },
+                { name: 'CorsAnywhere', url: `https://cors-anywhere.herokuapp.com/${cleanUrl}` },
+                { name: 'ProxyMi', url: `https://proxy.cors.sh/${cleanUrl}` },
+                { name: 'CorsFlare', url: `https://corsflare.com/?${cleanUrl}` }
+            ];
+
+            let jsonData = null;
+            let lastError = null;
+
+            // Try each proxy in sequence
+            for (const proxy of corsProxies) {
                 try {
-                    const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
-                    const proxyResponse = await fetch(corsProxyUrl);
-                    if (!proxyResponse.ok) throw new Error(`Proxy HTTP error! status: ${proxyResponse.status}`);
-                    jsonData = await proxyResponse.json();
-                } catch (proxyError) {
-                    console.log('CORS proxy failed, trying alternative proxy...', proxyError);
+                    console.log(`Trying ${proxy.name}...`);
+                    const response = await fetch(proxy.url);
                     
-                    // Try alternative CORS proxy
-                    const altProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cleanUrl)}`;
-                    const altResponse = await fetch(altProxyUrl);
-                    if (!altResponse.ok) throw new Error(`Alternative proxy HTTP error! status: ${altResponse.status}`);
-                    const altData = await altResponse.json();
-                    jsonData = JSON.parse(altData.contents);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    if (proxy.parseContents) {
+                        // For AllOrigins, parse the contents field
+                        const data = await response.json();
+                        if (data.contents) {
+                            jsonData = JSON.parse(data.contents);
+                        } else {
+                            throw new Error('No contents field in response');
+                        }
+                    } else {
+                        // Direct JSON response
+                        jsonData = await response.json();
+                    }
+
+                    // Validate that we got valid Lottie data
+                    if (jsonData && (jsonData.v || jsonData.assets || jsonData.layers)) {
+                        console.log(`Successfully loaded via ${proxy.name}`);
+                        break;
+                    } else {
+                        throw new Error('Invalid Lottie JSON format');
+                    }
+
+                } catch (error) {
+                    console.log(`${proxy.name} failed:`, error.message);
+                    lastError = error;
+                    continue;
                 }
+            }
+
+            if (!jsonData) {
+                throw new Error(`All proxy methods failed. Last error: ${lastError?.message || 'Unknown error'}`);
             }
 
             // Load the animation with the fetched data
@@ -285,7 +314,23 @@ async function loadAnimationFromUrl(url) {
         }
 
     } catch (error) {
-        showError('Failed to load animation. Please check the URL and ensure it\'s publicly accessible. CORS restrictions may prevent loading from some domains.');
+        let errorMessage = 'Failed to load animation from URL. ';
+        
+        if (error.message.includes('CORS')) {
+            errorMessage += 'CORS restrictions prevent loading from this domain. ';
+        } else if (error.message.includes('HTTP 404')) {
+            errorMessage += 'File not found (404). Please check the URL. ';
+        } else if (error.message.includes('HTTP 403')) {
+            errorMessage += 'Access forbidden (403). The file may be private. ';
+        } else if (error.message.includes('Invalid Lottie JSON')) {
+            errorMessage += 'The file is not a valid Lottie animation. ';
+        } else if (error.message.includes('All proxy methods failed')) {
+            errorMessage += 'All CORS proxy services are currently unavailable. Please try again later. ';
+        }
+        
+        errorMessage += 'Please ensure the URL is publicly accessible and points to a valid Lottie JSON file.';
+        
+        showError(errorMessage);
         console.error('Error loading animation from URL:', error);
         hideLoading(loadButton);
     }

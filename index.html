@@ -51,9 +51,13 @@
             <div class="player-controls">
                 <div class="seekbar-container">
                     <input type="range" id="seekbar" min="0" max="100" value="0" step="0.1" />
+                    <div class="duration-display">
+                        <span id="currentTime">0:00</span> / <span id="totalDuration">0:00</span>
+                    </div>
                 </div>
                 <div class="controls">
                     <button id="playPause">Play</button>
+                    <button id="stop">Stop</button>
                 </div>
             </div>
         </div>

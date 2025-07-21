@@ -232,11 +232,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
     background: #3182ce;
 }
 
-.time-display {
-    display: flex;
-    justify-content: space-between;
-    color: #4a5568;
+.duration-display {
+    text-align: center;
+    font-family: 'Courier New', monospace;
     font-size: 0.9rem;
+    color: #4a5568;
+    margin-bottom: 0.5rem;
 }
 
 .controls {
@@ -250,4 +251,4 @@ input[type="range"]::-webkit-slider-thumb:hover {
     text-align: center;
     margin-top: 1rem;
     min-height: 24px;
-} 
+}

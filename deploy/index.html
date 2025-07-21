@@ -240,6 +240,14 @@
         background: #3182ce;
     }
 
+    .duration-display {
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+
     .controls {
         display: flex;
         gap: 1rem;
@@ -298,6 +306,9 @@
             <div class="player-controls">
                 <div class="seekbar-container">
                     <input type="range" id="seekbar" min="0" max="100" value="0" step="0.1" />
+                    <div class="duration-display">
+                        <span id="currentTime">0:00</span> / <span id="totalDuration">0:00</span>
+                    </div>
                 </div>
                 <div class="controls">
                     <button id="playPause">Play</button>
@@ -327,6 +338,8 @@ const fileName = filePreview.querySelector('.file-name');
 const clearUploadButton = document.getElementById('clearUpload');
 const clearUrlButton = document.getElementById('clearUrl');
 const seekbar = document.getElementById('seekbar');
+const currentTimeDisplay = document.getElementById('currentTime');
+const totalDurationDisplay = document.getElementById('totalDuration');
 
 // Tab switching functionality
 tabButtons.forEach(button => {
@@ -387,6 +400,42 @@ function clearError() {
     errorDiv.textContent = '';
 }
 
+// Function to calculate animation duration from Lottie JSON
+function calculateAnimationDuration(jsonData) {
+    try {
+        const inPoint = jsonData.ip || 0;  // in point (start frame)
+        const outPoint = jsonData.op || 0; // out point (end frame)
+        const frameRate = jsonData.fr || 30; // frame rate (default 30fps)
+        
+        const duration = (outPoint - inPoint) / frameRate;
+        return Math.max(0, duration); // Ensure non-negative duration
+    } catch (error) {
+        console.error('Error calculating duration:', error);
+        return 0;
+    }
+}
+
+// Function to format time in MM:SS format
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Function to update duration display
+function updateDurationDisplay(totalDuration) {
+    if (totalDurationDisplay) {
+        totalDurationDisplay.textContent = formatTime(totalDuration);
+    }
+}
+
+// Function to update current time display
+function updateCurrentTimeDisplay(currentSeconds) {
+    if (currentTimeDisplay) {
+        currentTimeDisplay.textContent = formatTime(currentSeconds);
+    }
+}
+
 // Function to load animation from JSON data
 function loadAnimationFromData(jsonData) {
     try {
@@ -403,6 +452,10 @@ function loadAnimationFromData(jsonData) {
             </div>
         `;
 
+        // Calculate animation duration
+        const animationDuration = calculateAnimationDuration(jsonData);
+        console.log(`Animation duration: ${animationDuration} seconds`);
+
         // Load the animation
         lottieAnimation = lottie.loadAnimation({
             container: playerContainer,
@@ -412,6 +465,9 @@ function loadAnimationFromData(jsonData) {
             animationData: jsonData
         });
 
+        // Store duration for later use
+        lottieAnimation.animationDuration = animationDuration;
+
         // Enable controls once animation is loaded
         lottieAnimation.addEventListener('DOMLoaded', () => {
             playPauseButton.disabled = false;
@@ -420,6 +476,10 @@ function loadAnimationFromData(jsonData) {
             hideLoading(loadButton);
             hideLoading(uploadLabel);
             updateSeekbar();
+            
+            // Update duration display
+            updateDurationDisplay(animationDuration);
+            updateCurrentTimeDisplay(0);
         });
 
         // Handle loading error
@@ -590,6 +650,12 @@ function updateSeekbar() {
     if (!lottieAnimation) return;
     const progress = (lottieAnimation.currentFrame / lottieAnimation.totalFrames) * 100;
     seekbar.value = progress;
+    
+    // Update current time display
+    if (lottieAnimation.animationDuration) {
+        const currentTime = (progress / 100) * lottieAnimation.animationDuration;
+        updateCurrentTimeDisplay(currentTime);
+    }
 }
 
 // Event listener for file input

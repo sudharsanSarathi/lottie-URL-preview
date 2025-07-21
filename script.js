@@ -176,14 +176,23 @@ async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
     try {
-        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
+        let jsonData;
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Check if we're running locally or on GitHub Pages
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // Use local proxy when running locally
+            const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            jsonData = await response.json();
+        } else {
+            // Use public CORS proxy when on GitHub Pages
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            jsonData = await response.json();
         }
-        
-        const jsonData = await response.json();
+
         loadAnimationFromData(jsonData);
     } catch (error) {
         showError('Failed to load animation. Please check the URL and try again.');

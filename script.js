@@ -32,16 +32,15 @@ function formatTime(seconds) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// Update seekbar and time display
+// Update seekbar
 function updateSeekbar() {
-    if (!lottieAnimation || !isPlaying) return;
+    if (!lottieAnimation) return;
     
     const currentFrame = lottieAnimation.currentFrame;
     const totalFrames = lottieAnimation.totalFrames;
-    const currentTime = (currentFrame / lottieAnimation.frameRate);
     
+    // Update seekbar
     seekbar.value = (currentFrame / totalFrames) * 100;
-    currentTimeDisplay.textContent = formatTime(currentTime);
 }
 
 // Clear animation and reset UI
@@ -146,13 +145,18 @@ function loadAnimationFromData(jsonData) {
             hideLoading(loadButton);
             hideLoading(uploadLabel);
             
-            // Set up seekbar
-            animationDuration = lottieAnimation.totalFrames / lottieAnimation.frameRate;
-            durationDisplay.textContent = formatTime(animationDuration);
             isPlaying = true;
-            
-            // Start seekbar updates
+            updateSeekbar(); // Initial update
             seekbarUpdateInterval = setInterval(updateSeekbar, 50);
+        });
+
+        // Handle animation complete
+        lottieAnimation.addEventListener('complete', () => {
+            if (!lottieAnimation.loop) {
+                isPlaying = false;
+                playPauseButton.textContent = 'Play';
+                clearInterval(seekbarUpdateInterval);
+            }
         });
 
         // Handle loading error
@@ -171,61 +175,26 @@ function loadAnimationFromData(jsonData) {
     }
 }
 
-// Function to handle file upload
-async function handleFileUpload(file) {
-    if (!file) {
-        showError('Please select a file');
-        return;
-    }
-
-    if (!isValidLottieFile(file.name)) {
-        showError('Please upload a .json or .lottie file');
-        return;
-    }
-
-    showLoading(uploadLabel);
-    
-    // Show file preview
-    fileName.textContent = file.name;
-    filePreview.classList.remove('hidden');
-
-    try {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const jsonData = JSON.parse(e.target.result);
-                loadAnimationFromData(jsonData);
-            } catch (error) {
-                showError('Invalid JSON file. Please check the file and try again.');
-                console.error('Error parsing JSON:', error);
-                hideLoading(uploadLabel);
-            }
-        };
-        reader.onerror = () => {
-            showError('Error reading file. Please try again.');
-            hideLoading(uploadLabel);
-        };
-        reader.readAsText(file);
-    } catch (error) {
-        showError('Error processing file. Please try again.');
-        console.error('Error processing file:', error);
-        hideLoading(uploadLabel);
-    }
-}
-
-// Function to load animation from URL using proxy
+// Function to load animation from URL
 async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
     try {
-        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
+        let jsonData;
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        try {
+            // First try direct fetch (for URLs that support CORS)
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Direct fetch failed');
+            jsonData = await response.json();
+        } catch (directError) {
+            // If direct fetch fails, try using proxy
+            const proxyUrl = `${window.location.protocol}//${window.location.hostname}:3000/proxy?url=${encodeURIComponent(url)}`;
+            const proxyResponse = await fetch(proxyUrl);
+            if (!proxyResponse.ok) throw new Error('Proxy fetch failed');
+            jsonData = await proxyResponse.json();
         }
         
-        const jsonData = await response.json();
         loadAnimationFromData(jsonData);
     } catch (error) {
         showError('Failed to load animation. Please check the URL and try again.');
@@ -293,8 +262,7 @@ seekbar.addEventListener('input', () => {
     
     const frame = (seekbar.value / 100) * lottieAnimation.totalFrames;
     lottieAnimation.goToAndStop(frame, true);
-    const currentTime = (frame / lottieAnimation.frameRate);
-    currentTimeDisplay.textContent = formatTime(currentTime);
+    updateSeekbar(); // Update time display immediately
 });
 
 seekbar.addEventListener('change', () => {

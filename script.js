@@ -18,51 +18,6 @@ const fileName = filePreview.querySelector('.file-name');
 const clearUploadButton = document.getElementById('clearUpload');
 const clearUrlButton = document.getElementById('clearUrl');
 const seekbar = document.getElementById('seekbar');
-const currentTimeDisplay = document.getElementById('currentTime');
-const durationDisplay = document.getElementById('duration');
-
-let isPlaying = false;
-let animationDuration = 0;
-let seekbarUpdateInterval;
-
-// Format time in seconds to MM:SS format
-function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
-// Update seekbar
-function updateSeekbar() {
-    if (!lottieAnimation) return;
-    
-    const currentFrame = lottieAnimation.currentFrame;
-    const totalFrames = lottieAnimation.totalFrames;
-    
-    // Update seekbar
-    seekbar.value = (currentFrame / totalFrames) * 100;
-}
-
-// Clear animation and reset UI
-function clearAnimation() {
-    if (lottieAnimation) {
-        lottieAnimation.destroy();
-        lottieAnimation = null;
-    }
-    playerContainer.innerHTML = `
-        <div class="loading-message hidden">
-            <div class="loading-spinner"></div>
-            <p>Loading animation...</p>
-        </div>
-    `;
-    playPauseButton.textContent = 'Play';
-    playPauseButton.disabled = true;
-    seekbar.value = 0;
-    currentTimeDisplay.textContent = '0:00';
-    durationDisplay.textContent = '0:00';
-    isPlaying = false;
-    clearInterval(seekbarUpdateInterval);
-}
 
 // Tab switching functionality
 tabButtons.forEach(button => {
@@ -126,7 +81,18 @@ function clearError() {
 // Function to load animation from JSON data
 function loadAnimationFromData(jsonData) {
     try {
-        clearAnimation();
+        // Destroy existing animation if any
+        if (lottieAnimation) {
+            lottieAnimation.destroy();
+        }
+
+        // Clear the player container
+        playerContainer.innerHTML = `
+            <div class="loading-message hidden">
+                <div class="loading-spinner"></div>
+                <p>Loading animation...</p>
+            </div>
+        `;
 
         // Load the animation
         lottieAnimation = lottie.loadAnimation({
@@ -137,26 +103,14 @@ function loadAnimationFromData(jsonData) {
             animationData: jsonData
         });
 
-        // Enable controls and start playing once animation is loaded
+        // Enable controls once animation is loaded
         lottieAnimation.addEventListener('DOMLoaded', () => {
             playPauseButton.disabled = false;
             playPauseButton.textContent = 'Pause';
             clearError();
             hideLoading(loadButton);
             hideLoading(uploadLabel);
-            
-            isPlaying = true;
-            updateSeekbar(); // Initial update
-            seekbarUpdateInterval = setInterval(updateSeekbar, 50);
-        });
-
-        // Handle animation complete
-        lottieAnimation.addEventListener('complete', () => {
-            if (!lottieAnimation.loop) {
-                isPlaying = false;
-                playPauseButton.textContent = 'Play';
-                clearInterval(seekbarUpdateInterval);
-            }
+            updateSeekbar();
         });
 
         // Handle loading error
@@ -175,34 +129,74 @@ function loadAnimationFromData(jsonData) {
     }
 }
 
+// Function to handle file upload
+async function handleFileUpload(file) {
+    if (!file) {
+        showError('Please select a file');
+        return;
+    }
+
+    if (!isValidLottieFile(file.name)) {
+        showError('Please upload a .json or .lottie file');
+        return;
+    }
+
+    showLoading(uploadLabel);
+    
+    // Show file preview
+    fileName.textContent = file.name;
+    filePreview.classList.remove('hidden');
+
+    try {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const jsonData = JSON.parse(e.target.result);
+                loadAnimationFromData(jsonData);
+            } catch (error) {
+                showError('Invalid JSON file. Please check the file and try again.');
+                console.error('Error parsing JSON:', error);
+                hideLoading(uploadLabel);
+            }
+        };
+        reader.onerror = () => {
+            showError('Error reading file. Please try again.');
+            hideLoading(uploadLabel);
+        };
+        reader.readAsText(file);
+    } catch (error) {
+        showError('Error processing file. Please try again.');
+        console.error('Error processing file:', error);
+        hideLoading(uploadLabel);
+    }
+}
+
 // Function to load animation from URL
 async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
     try {
-        let jsonData;
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
         
-        if (isLocalhost) {
-            // In localhost, use our proxy server
-            const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            jsonData = await response.json();
-        } else {
-            // In production (GitHub Pages), use a public CORS proxy
-            const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-            const response = await fetch(corsProxyUrl);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            jsonData = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+        
+        const jsonData = await response.json();
         loadAnimationFromData(jsonData);
     } catch (error) {
-        showError('Failed to load animation. Please check the URL and try again. Make sure the URL is publicly accessible.');
+        showError('Failed to load animation. Please check the URL and try again.');
         console.error('Error loading animation from URL:', error);
         hideLoading(loadButton);
     }
+}
+
+// Update seekbar
+function updateSeekbar() {
+    if (!lottieAnimation) return;
+    const progress = (lottieAnimation.currentFrame / lottieAnimation.totalFrames) * 100;
+    seekbar.value = progress;
 }
 
 // Event listener for file input
@@ -218,7 +212,10 @@ clearUploadButton.addEventListener('click', (e) => {
     fileInput.value = '';
     filePreview.classList.add('hidden');
     fileName.textContent = '';
-    clearAnimation();
+    if (lottieAnimation) {
+        lottieAnimation.destroy();
+        lottieAnimation = null;
+    }
     clearError();
 });
 
@@ -226,7 +223,10 @@ clearUploadButton.addEventListener('click', (e) => {
 clearUrlButton.addEventListener('click', () => {
     urlInput.value = '';
     clearUrlButton.classList.add('hidden');
-    clearAnimation();
+    if (lottieAnimation) {
+        lottieAnimation.destroy();
+        lottieAnimation = null;
+    }
     clearError();
 });
 
@@ -261,15 +261,12 @@ fileUpload.addEventListener('drop', (e) => {
 // Seekbar event listener
 seekbar.addEventListener('input', () => {
     if (!lottieAnimation) return;
-    
     const frame = (seekbar.value / 100) * lottieAnimation.totalFrames;
     lottieAnimation.goToAndStop(frame, true);
-    updateSeekbar(); // Update time display immediately
 });
 
 seekbar.addEventListener('change', () => {
-    if (!lottieAnimation || !isPlaying) return;
-    
+    if (!lottieAnimation) return;
     const frame = (seekbar.value / 100) * lottieAnimation.totalFrames;
     lottieAnimation.goToAndPlay(frame, true);
 });
@@ -303,18 +300,21 @@ loadButton.addEventListener('click', () => {
 playPauseButton.addEventListener('click', () => {
     if (!lottieAnimation) return;
 
-    isPlaying = !isPlaying;
-    
-    if (isPlaying) {
+    if (lottieAnimation.isPaused) {
         lottieAnimation.play();
         playPauseButton.textContent = 'Pause';
-        seekbarUpdateInterval = setInterval(updateSeekbar, 50);
     } else {
         lottieAnimation.pause();
         playPauseButton.textContent = 'Play';
-        clearInterval(seekbarUpdateInterval);
     }
 });
 
 // Initially disable control buttons
-playPauseButton.disabled = true; 
+playPauseButton.disabled = true;
+
+// Start seekbar updates
+setInterval(() => {
+    if (lottieAnimation && !lottieAnimation.isPaused) {
+        updateSeekbar();
+    }
+}, 50); 

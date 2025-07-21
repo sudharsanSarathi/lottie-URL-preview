@@ -6,12 +6,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS for all routes with specific options
-app.use(cors({
-    origin: '*', // Allow all origins
-    methods: ['GET', 'POST', 'OPTIONS'], // Allow specific methods
-    allowedHeaders: ['Content-Type', 'Authorization'] // Allow specific headers
-}));
+// Enable CORS for all routes
+app.use(cors());
 
 // Serve static files from the current directory
 app.use(express.static('./'));
@@ -25,18 +21,7 @@ app.get('/proxy', async (req, res) => {
     }
 
     try {
-        const response = await axios.get(url, {
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; LottieViewer/1.0;)'
-            }
-        });
-        
-        // Set CORS headers explicitly
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        
+        const response = await axios.get(url);
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ 
@@ -45,9 +30,6 @@ app.get('/proxy', async (req, res) => {
         });
     }
 });
-
-// Handle OPTIONS requests explicitly
-app.options('*', cors());
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

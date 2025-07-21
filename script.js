@@ -176,28 +176,37 @@ async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
     try {
-        // Remove any @ symbol from the start of the URL
+        // Clean the URL
         const cleanUrl = url.startsWith('@') ? url.substring(1) : url;
         
-        // Use jsonp.afeld.me proxy - one of the most reliable CORS proxies
-        const proxyUrl = `https://jsonp.afeld.me/?url=${encodeURIComponent(cleanUrl)}`;
-        
-        const response = await fetch(proxyUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch: ${response.status}`);
-        }
+        // Create the animation directly with the URL
+        lottieAnimation = lottie.loadAnimation({
+            container: playerContainer,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: cleanUrl
+        });
 
-        const jsonData = await response.json();
-        
-        // Basic validation of Lottie format
-        if (!jsonData || !jsonData.v || !jsonData.layers) {
-            throw new Error('Invalid Lottie animation format');
-        }
+        // Enable controls once animation is loaded
+        lottieAnimation.addEventListener('DOMLoaded', () => {
+            playPauseButton.disabled = false;
+            playPauseButton.textContent = 'Pause';
+            clearError();
+            hideLoading(loadButton);
+            updateSeekbar();
+        });
 
-        loadAnimationFromData(jsonData);
+        // Handle loading error
+        lottieAnimation.addEventListener('error', () => {
+            showError('Failed to load animation. Please check the URL and try again.');
+            playPauseButton.disabled = true;
+            hideLoading(loadButton);
+        });
+
     } catch (error) {
+        showError('Failed to load animation. Please check the URL and try again.');
         console.error('Error loading animation:', error);
-        showError('Failed to load animation. Please make sure the URL points to a valid Lottie JSON file.');
         hideLoading(loadButton);
     }
 }

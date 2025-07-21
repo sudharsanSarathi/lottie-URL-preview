@@ -176,24 +176,50 @@ async function loadAnimationFromUrl(url) {
     showLoading(loadButton);
 
     try {
-        let jsonData;
-        
-        // Check if we're running locally or on GitHub Pages
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            // Use local proxy when running locally
-            const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            jsonData = await response.json();
-        } else {
-            // Use public CORS proxy when on GitHub Pages
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            jsonData = await response.json();
+        // Try direct fetch first
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const jsonData = await response.json();
+                loadAnimationFromData(jsonData);
+                return;
+            }
+        } catch (directError) {
+            console.log('Direct fetch failed, trying CORS proxy...');
         }
 
-        loadAnimationFromData(jsonData);
+        // If direct fetch fails, try CORS proxy
+        const corsProxies = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            `https://cors-anywhere.herokuapp.com/${url}`,
+            `https://corsproxy.io/?${encodeURIComponent(url)}`
+        ];
+
+        for (const proxyUrl of corsProxies) {
+            try {
+                const response = await fetch(proxyUrl);
+                if (response.ok) {
+                    const jsonData = await response.json();
+                    loadAnimationFromData(jsonData);
+                    return;
+                }
+            } catch (proxyError) {
+                console.log(`Proxy failed: ${proxyUrl}`);
+            }
+        }
+
+        // If all proxies fail and we're on localhost, try the local proxy
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            const localProxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+            const response = await fetch(localProxyUrl);
+            if (response.ok) {
+                const jsonData = await response.json();
+                loadAnimationFromData(jsonData);
+                return;
+            }
+        }
+
+        throw new Error('All fetch attempts failed');
     } catch (error) {
         showError('Failed to load animation. Please check the URL and try again.');
         console.error('Error loading animation from URL:', error);

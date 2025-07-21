@@ -309,6 +309,51 @@
     </div>
     <script>
         // Copy the entire updated script.js content here
+
+        // Function to load animation from URL
+        async function loadAnimationFromUrl(url) {
+            showLoading(loadButton);
+
+            try {
+                // Try direct fetch first
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const jsonData = await response.json();
+                        loadAnimationFromData(jsonData);
+                        return;
+                    }
+                } catch (directError) {
+                    console.log('Direct fetch failed, trying CORS proxy...');
+                }
+
+                // If direct fetch fails, try CORS proxy
+                const corsProxies = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    `https://cors-anywhere.herokuapp.com/${url}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`
+                ];
+
+                for (const proxyUrl of corsProxies) {
+                    try {
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            const jsonData = await response.json();
+                            loadAnimationFromData(jsonData);
+                            return;
+                        }
+                    } catch (proxyError) {
+                        console.log(`Proxy failed: ${proxyUrl}`);
+                    }
+                }
+
+                throw new Error('All fetch attempts failed');
+            } catch (error) {
+                showError('Failed to load animation. Please check the URL and try again.');
+                console.error('Error loading animation from URL:', error);
+                hideLoading(loadButton);
+            }
+        }
     </script>
 </body>
 </html> 

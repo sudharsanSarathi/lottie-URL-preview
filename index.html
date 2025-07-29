@@ -6,8 +6,27 @@
     <title>Lottie Animation Viewer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <!-- Google AdSense Script - Replace with your AdSense code -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID"
+     crossorigin="anonymous"></script>
 </head>
 <body>
+    <div class="page-wrapper">
+        <!-- Left Ad Container -->
+        <div class="ad-container left">
+            <!-- Replace this comment with your AdSense ad unit code -->
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+                 data-ad-slot="YOUR_AD_SLOT_ID"
+                 data-ad-format="vertical"
+                 data-full-width-responsive="false"></ins>
+            <script>
+                 (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
+
+        <!-- Main Content -->
     <div class="container">
         <h1>Lottie Animation Viewer</h1>
         
@@ -57,11 +76,45 @@
                 </div>
                 <div class="controls">
                     <button id="playPause">Play</button>
-                    <button id="stop">Stop</button>
                 </div>
             </div>
         </div>
+        
+        <!-- Animation Details Section -->
+        <div id="animationDetails" class="animation-details hidden">
+            <h3>Animation Details</h3>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Dimensions:</span>
+                    <span id="animationDimensions" class="detail-value">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">File Size:</span>
+                    <span id="fileSize" class="detail-value">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Duration:</span>
+                    <span id="animationDuration" class="detail-value">-</span>
+                </div>
+
+            </div>
+        </div>
         <div id="error" class="error"></div>
+        </div>
+
+        <!-- Right Ad Container -->
+        <div class="ad-container right">
+            <!-- Replace this comment with your AdSense ad unit code -->
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+                 data-ad-slot="YOUR_AD_SLOT_ID"
+                 data-ad-format="vertical"
+                 data-full-width-responsive="false"></ins>
+            <script>
+                 (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

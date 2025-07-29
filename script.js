@@ -20,6 +20,10 @@ const clearUrlButton = document.getElementById('clearUrl');
 const seekbar = document.getElementById('seekbar');
 const currentTimeDisplay = document.getElementById('currentTime');
 const totalDurationDisplay = document.getElementById('totalDuration');
+const animationDetails = document.getElementById('animationDetails');
+const animationDimensions = document.getElementById('animationDimensions');
+const fileSize = document.getElementById('fileSize');
+const animationDuration = document.getElementById('animationDuration');
 
 // Tab switching functionality
 tabButtons.forEach(button => {
@@ -144,8 +148,54 @@ function updateCurrentTimeDisplay(currentSeconds) {
     }
 }
 
+// Function to format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Function to update animation details
+function updateAnimationDetails(jsonData, fileSizeBytes = null) {
+    try {
+        // Show the details section
+        animationDetails.classList.remove('hidden');
+        
+        // Update dimensions
+        if (jsonData.w && jsonData.h) {
+            animationDimensions.textContent = `${jsonData.w} × ${jsonData.h} px`;
+        } else {
+            animationDimensions.textContent = 'Unknown';
+        }
+        
+        // Update file size
+        if (fileSizeBytes !== null) {
+            fileSize.textContent = formatFileSize(fileSizeBytes);
+        } else {
+            fileSize.textContent = 'Unknown';
+        }
+        
+        // Update duration
+        const duration = calculateAnimationDuration(jsonData);
+        if (duration > 0) {
+            animationDuration.textContent = formatTime(duration);
+        } else {
+            animationDuration.textContent = 'Unknown';
+        }
+        
+
+        
+    } catch (error) {
+        console.error('Error updating animation details:', error);
+        // Hide details section if there's an error
+        animationDetails.classList.add('hidden');
+    }
+}
+
 // Function to load animation from JSON data
-function loadAnimationFromData(jsonData) {
+function loadAnimationFromData(jsonData, fileSizeBytes = null) {
     try {
         // Destroy existing animation if any
         if (lottieAnimation) {
@@ -188,6 +238,9 @@ function loadAnimationFromData(jsonData) {
             // Update duration display
             updateDurationDisplay(animationDuration);
             updateCurrentTimeDisplay(0);
+            
+            // Update animation details
+            updateAnimationDetails(jsonData, fileSizeBytes);
         });
 
         // Handle loading error
@@ -196,6 +249,7 @@ function loadAnimationFromData(jsonData) {
             playPauseButton.disabled = true;
             hideLoading(loadButton);
             hideLoading(uploadLabel);
+            animationDetails.classList.add('hidden');
         });
 
     } catch (error) {
@@ -203,6 +257,7 @@ function loadAnimationFromData(jsonData) {
         console.error('Error loading animation:', error);
         hideLoading(loadButton);
         hideLoading(uploadLabel);
+        animationDetails.classList.add('hidden');
     }
 }
 
@@ -229,7 +284,7 @@ async function handleFileUpload(file) {
         reader.onload = (e) => {
             try {
                 const jsonData = JSON.parse(e.target.result);
-                loadAnimationFromData(jsonData);
+                loadAnimationFromData(jsonData, file.size);
             } catch (error) {
                 showError('Invalid JSON file. Please check the file and try again.');
                 console.error('Error parsing JSON:', error);
@@ -304,7 +359,7 @@ async function loadAnimationFromUrl(url) {
                         const response = await fetch(proxyUrl);
                         if (!response.ok) throw new Error(`Proxy error! status: ${response.status}`);
                         const jsonData = await response.json();
-                        loadAnimationFromData(jsonData);
+                        loadAnimationFromData(jsonData, null);
                     } catch (proxyError) {
                         showError('Failed to load animation. Please check the URL and try again.');
                         console.error('Proxy loading failed:', proxyError);
@@ -320,7 +375,7 @@ async function loadAnimationFromUrl(url) {
                     const response = await fetch(proxyUrl);
                     if (!response.ok) throw new Error(`Proxy error! status: ${response.status}`);
                     const jsonData = await response.json();
-                    loadAnimationFromData(jsonData);
+                    loadAnimationFromData(jsonData, null);
                 } catch (proxyError) {
                     showError('Failed to load animation. Please check the URL and try again.');
                     console.error('Proxy loading failed:', proxyError);
@@ -387,7 +442,7 @@ async function loadAnimationFromUrl(url) {
             }
 
             // Load the animation with the fetched data
-            loadAnimationFromData(jsonData);
+            loadAnimationFromData(jsonData, null);
         }
 
     } catch (error) {
@@ -443,6 +498,7 @@ clearUploadButton.addEventListener('click', (e) => {
         lottieAnimation.destroy();
         lottieAnimation = null;
     }
+    animationDetails.classList.add('hidden');
     clearError();
 });
 
@@ -454,6 +510,7 @@ clearUrlButton.addEventListener('click', () => {
         lottieAnimation.destroy();
         lottieAnimation = null;
     }
+    animationDetails.classList.add('hidden');
     clearError();
 });
 

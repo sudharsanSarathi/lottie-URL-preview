@@ -4,14 +4,56 @@
     box-sizing: border-box;
 }
 
+/* CSS Variables for theming */
+:root {
+    --bg-color: #f7fafc;
+    --text-color: #2d3748;
+    --container-bg: white;
+    --border-color: #e2e8f0;
+    --primary-color: #4299e1;
+    --primary-hover: #3182ce;
+    --secondary-bg: #f7fafc;
+    --error-color: #e53e3e;
+    --button-bg: #4299e1;
+    --button-hover: #3182ce;
+    --input-bg: white;
+    --input-border: #e2e8f0;
+    --tab-bg: #e2e8f0;
+    --tab-text: #4a5568;
+    --details-bg: #f7fafc;
+    --details-border: #e2e8f0;
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+    --bg-color: #1a202c;
+    --text-color: #e2e8f0;
+    --container-bg: #2d3748;
+    --border-color: #4a5568;
+    --primary-color: #63b3ed;
+    --primary-hover: #4299e1;
+    --secondary-bg: #2d3748;
+    --error-color: #fc8181;
+    --button-bg: #63b3ed;
+    --button-hover: #4299e1;
+    --input-bg: #4a5568;
+    --input-border: #718096;
+    --tab-bg: #4a5568;
+    --tab-text: #e2e8f0;
+    --details-bg: #2d3748;
+    --details-border: #4a5568;
+}
+
 body {
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #f7fafc;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     min-height: 100vh;
     display: flex;
     justify-content: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .page-wrapper {
@@ -45,15 +87,51 @@ body {
     order: 3;
 }
 
+/* Theme Toggle */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.theme-toggle-btn:hover {
+    background-color: var(--button-hover);
+}
+
+.theme-icon {
+    font-size: 1rem;
+}
+
+.theme-text {
+    font-weight: 500;
+}
+
 .container {
     flex: 1;
     order: 2;
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
-    background-color: white;
+    background-color: var(--container-bg);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
 }
 
 @media (max-width: 1200px) {
@@ -69,7 +147,7 @@ body {
 h1 {
     text-align: center;
     margin-bottom: 2rem;
-    color: #2d3748;
+    color: var(--text-color);
 }
 
 .tabs {
@@ -81,8 +159,8 @@ h1 {
 
 .tab-button {
     padding: 0.75rem 1.5rem;
-    background-color: #e2e8f0;
-    color: #4a5568;
+    background-color: var(--tab-bg);
+    color: var(--tab-text);
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -91,7 +169,7 @@ h1 {
 }
 
 .tab-button.active {
-    background-color: #4299e1;
+    background-color: var(--primary-color);
     color: white;
 }
 
@@ -104,7 +182,7 @@ h1 {
 }
 
 .file-upload {
-    border: 2px dashed #e2e8f0;
+    border: 2px dashed var(--border-color);
     border-radius: 6px;
     padding: 2rem;
     text-align: center;
@@ -113,7 +191,7 @@ h1 {
 }
 
 .file-upload:hover {
-    border-color: #4299e1;
+    border-color: var(--primary-color);
 }
 
 .file-upload input[type="file"] {
@@ -132,7 +210,7 @@ h1 {
 .file-preview {
     margin-top: 1rem;
     padding: 1rem;
-    background-color: #f7fafc;
+    background-color: var(--secondary-bg);
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -141,7 +219,7 @@ h1 {
 }
 
 .file-name {
-    color: #4a5568;
+    color: var(--text-color);
     font-size: 0.9rem;
     word-break: break-all;
 }
@@ -169,20 +247,22 @@ h1 {
 input[type="text"] {
     flex: 1;
     padding: 0.75rem;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--input-border);
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.2s;
+    background-color: var(--input-bg);
+    color: var(--text-color);
 }
 
 input[type="text"]:focus {
     outline: none;
-    border-color: #4299e1;
+    border-color: var(--primary-color);
 }
 
 button {
     padding: 0.75rem 1.5rem;
-    background-color: #4299e1;
+    background-color: var(--button-bg);
     color: white;
     border: none;
     border-radius: 6px;
@@ -195,7 +275,7 @@ button {
 }
 
 button:hover {
-    background-color: #3182ce;
+    background-color: var(--button-hover);
 }
 
 button:disabled {
@@ -210,7 +290,7 @@ button:disabled {
 #lottiePlayer {
     width: 100%;
     height: 400px;
-    background-color: #f7fafc;
+    background-color: var(--secondary-bg);
     border-radius: 8px;
     overflow: hidden;
     position: relative;
@@ -225,7 +305,7 @@ button:disabled {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
-    color: #4a5568;
+    color: var(--text-color);
     background-color: rgba(247, 250, 252, 0.9);
     padding: 2rem;
     border-radius: 8px;
@@ -258,7 +338,7 @@ input[type="range"] {
     width: 100%;
     height: 6px;
     -webkit-appearance: none;
-    background: #e2e8f0;
+    background: var(--border-color);
     border-radius: 3px;
     outline: none;
     margin-bottom: 0.5rem;
@@ -268,21 +348,21 @@ input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
-    background: #4299e1;
+    background: var(--primary-color);
     border-radius: 50%;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-    background: #3182ce;
+    background: var(--primary-hover);
 }
 
 .duration-display {
     text-align: center;
     font-family: 'Courier New', monospace;
     font-size: 0.9rem;
-    color: #4a5568;
+    color: var(--text-color);
     margin-bottom: 0.5rem;
 }
 
@@ -293,7 +373,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .error {
-    color: #e53e3e;
+    color: var(--error-color);
     text-align: center;
     margin-top: 1rem;
     min-height: 24px;
@@ -303,14 +383,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .animation-details {
     margin-top: 2rem;
     padding: 1.5rem;
-    background-color: #f7fafc;
+    background-color: var(--details-bg);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--details-border);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .animation-details h3 {
     margin-bottom: 1rem;
-    color: #2d3748;
+    color: var(--text-color);
     font-size: 1.1rem;
     text-align: center;
 }
@@ -326,19 +407,20 @@ input[type="range"]::-webkit-slider-thumb:hover {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
-    background-color: white;
+    background-color: var(--container-bg);
     border-radius: 6px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .detail-label {
     font-weight: 600;
-    color: #4a5568;
+    color: var(--text-color);
     font-size: 0.9rem;
 }
 
 .detail-value {
-    color: #2d3748;
+    color: var(--text-color);
     font-family: 'Courier New', monospace;
     font-size: 0.9rem;
     font-weight: 500;

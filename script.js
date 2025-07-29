@@ -24,6 +24,9 @@ const animationDetails = document.getElementById('animationDetails');
 const animationDimensions = document.getElementById('animationDimensions');
 const fileSize = document.getElementById('fileSize');
 const animationDuration = document.getElementById('animationDuration');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = themeToggle.querySelector('.theme-icon');
+const themeText = themeToggle.querySelector('.theme-text');
 
 // Tab switching functionality
 tabButtons.forEach(button => {
@@ -185,7 +188,13 @@ function updateAnimationDetails(jsonData, fileSizeBytes = null) {
             animationDuration.textContent = 'Unknown';
         }
         
-
+        // Auto-scroll to details section
+        setTimeout(() => {
+            animationDetails.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }, 500);
         
     } catch (error) {
         console.error('Error updating animation details:', error);
@@ -601,4 +610,45 @@ setInterval(() => {
     if (lottieAnimation && !lottieAnimation.isPaused) {
         updateSeekbar();
     }
-}, 50); 
+}, 50);
+
+// Theme toggle functionality
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    
+    // Update button text and icon
+    if (newTheme === 'dark') {
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light Mode';
+    } else {
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark Mode';
+    }
+    
+    // Save theme preference to localStorage
+    localStorage.setItem('theme', newTheme);
+}
+
+// Initialize theme from localStorage
+function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Update button text and icon based on saved theme
+    if (savedTheme === 'dark') {
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light Mode';
+    } else {
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark Mode';
+    }
+}
+
+// Event listener for theme toggle
+themeToggle.addEventListener('click', toggleTheme);
+
+// Initialize theme on page load
+initializeTheme(); 
